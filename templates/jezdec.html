@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width,initial-scale=1" name="viewport"/>
+    <link href="/static/mujstyl.css" rel="stylesheet"/>
+    <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" rel="stylesheet">
+    <title>Účet</title>
+</head>
+
+<body>
+
+<div class="container-fluid">
+    <div class="row align-items-center justify-content-center center-text m-3">
+        <div class="col-12">
+            <h1>Účet</h1>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-primary mb-1 w-100" href="/seznam-jezdcu"
+               role="button" style="height: 38px">Seznam jezdců</a>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-primary mb-1 w-100" href="/seznam-lodek"
+               role="button" style="height: 38px">Seznam loděk</a>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-danger mb-1 w-100" href="/odhlaseni" role="button" style="height: 38px">Odhlásit
+                se</a>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-danger mb-1 w-100" href="/smazat-jezdce"
+               role="button" style="height: 38px">Smazat
+                účet</a>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid justify-content-center text-center align-items-center">
+    {% if not spolujezdec %}
+    <div class="mt-2">
+        <h2>Pozvánky</h2>
+    </div>
+    <form class="row justify-content-center" onsubmit="return validacePoslaniPozvanky(this)">
+        <div class="col-sm-12 col-md-6">
+            <label for="fspolujezdec">Spolujezdec</label>
+            <input class="form-control" id="fspolujezdec" name="spolujezdec"
+                   placeholder="Zadejte uživatelské jméno spolujezdce" type="text">
+        </div>
+        <div class="col-sm-12 col-md-3 col-lg-2">
+            <button class="btn btn-primary w-100 mt-4" style="height: 38px" type="submit">Poslat pozvánku
+            </button>
+        </div>
+    </form>
+    <div class="mt-4">
+        <h3>Příchozí pozvánky</h3>
+    </div>
+
+    {% for pozvanka in pozvanky %}
+    <div class="row justify-content-center text-center align-items-center">
+        <div class="col-sm-12 col-md-auto mt-2">
+            {{pozvanka.jmeno}} {{pozvanka.prijmeni}}, {{pozvanka.trida}}
+        </div>
+        <div class="col-auto">
+            <form class="justify-content-center text-center align-items-center"
+                  onsubmit="return validacePrijmutiPozvanky('{{pozvanka.uzivatelske_jmeno}}')">
+                <input name="odesilatel" style="width: 0" type="hidden" value="{{pozvanka.uzivatelske_jmeno}}">
+                <button class="btn btn-success mt-2" style="height: 38px" type="submit">Přijmout
+                </button>
+            </form>
+        </div>
+        <div class="col-auto">
+            <form onsubmit="return validaceOdmitnutiPozvanky('{{pozvanka.uzivatelske_jmeno}}')">
+                <input name="odesilatel" style="width: 0" type="hidden" value="{{pozvanka.uzivatelske_jmeno}}">
+                <button class="btn btn-danger mt-2" style="height: 38px" type="submit">Odmítnout
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="mt-4">
+        <h2>Váš spolujezdec</h2>
+    </div>
+    <div class="row align-items-center justify-content-center">
+        <div class="col-auto">
+            {{spolujezdec.jmeno}} {{spolujezdec.prijmeni}}, {{spolujezdec.trida}}
+        </div>
+        <div class="col-auto">
+            <form action="/odstranit-spolujezdce" method="POST">
+                <input style="width: 0; height: 0" type="hidden" value="{{spolujezdec.uzivatelske_jmeno}}">
+                <button class="btn btn-warning align-self-center" style="height: 38px" type="submit">Odstranit
+                    spolujezdce
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+<script crossorigin="anonymous"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/script.js"></script>
+</body>
+
+</html>

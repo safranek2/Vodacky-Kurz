@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width,initial-scale=1" name="viewport"/>
+    <link href="/static/mujstyl.css" rel="stylesheet"/>
+    <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" rel="stylesheet">
+    <title>Seznam loděk</title>
+</head>
+
+<body>
+
+<div class="container-fluid">
+    <div class="row align-items-center justify-content-center center-text m-3">
+        <div class="col-12">
+            <h1>Seznam loděk</h1>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-primary mb-1 w-100" href="/jezdec"
+               role="button" style="height: 38px">Účet</a>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-primary mb-1 w-100" href="/seznam-jezdcu"
+               role="button" style="height: 38px">Seznam jezdců</a>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-danger mb-1 w-100" href="/odhlaseni" role="button" style="height: 38px">Odhlásit
+                se</a>
+        </div>
+        <div class="col-md-3 col-lg-2 align-self-center">
+            <a class="btn btn-danger mb-1 w-100" href="/smazat-jezdce"
+               role="button" style="height: 38px">Smazat
+                účet</a>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <form action="/seznam-lodek" class="m-3 text-center" method="POST">
+        <div class="row justify-content-center">
+            <div class="form-group col-md-3 col-lg-2">
+                <label for="fjmeno">Jméno</label>
+                <input class="form-control" id="fjmeno" name="jmeno" placeholder="Hledat pomocí jména" type="text"
+                       value="{{ session.get('filtr_jmena-lodky', '') }}">
+            </div>
+            <div class="form-group col-md-3 col-lg-2">
+                <label for="fprijmeni">Příjmení</label>
+                <input class="form-control" id="fprijmeni" name="prijmeni" placeholder="Hledat pomocí příjmení"
+                       type="text"
+                       value="{{ session.get('filtr_prijmeni-lodky', '') }}">
+            </div>
+            <div class="col-md-3 col-lg-2 align-self-center">
+                <label for="stridy">Třída</label>
+                <select class="form-select" id="stridy" name="trida">
+                    <option>---</option>
+                    {% for trida in tridy %}
+                    <option if session.get( trida== value="{{ trida }}" {%
+                    'filtr_tridy-lodky', '') %} selected {% endif %}>
+                    {{ trida }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2 align-self-center">
+                <button class="btn btn-primary w-100 mt-4" style="height: 38px" type="submit">Filtrovat</button>
+            </div>
+        </div>
+    </form>
+    <div class="text-center mt-2 container-fluid">
+        <ul class="list-group list-group-flush">
+            {% for lodka in lodky %}
+            <li class="list-group-item">
+                {{ lodka.jezdci[0] }} - {{ lodka.jezdci[1] }}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<script crossorigin="anonymous"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/script.js"></script>
+</body>
+
+</html>

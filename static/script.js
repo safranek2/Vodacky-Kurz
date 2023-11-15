@@ -1,44 +1,99 @@
-function validateForm(form) {
-    let nick = form.querySelector("#fnick").value;
-    let jePlavec = form.querySelector("#rplavec").checked;
-    let kanoeKamarad = form.querySelector("#fspolujezdec").value;
+async function validaceRegistrace(form) {
+    event.preventDefault();
 
-    if (nick.length < 2 || nick.length > 20 || !/^[a-zA-Z0-9]+$/.test(nick)) {
-        alert("Přezdívka musí obsahovat 2 až 20 znaků a smí obsahovat pouze písmena a čísla.");
-        return false;
-    } else if (!jePlavec) {
-        alert("Musíte označit, zda jste plavec.");
-        return false;
-    } else if (kanoeKamarad && (kanoeKamarad.length < 2 || kanoeKamarad.length > 20 || !/^[a-zA-Z0-9]+$/.test(kanoeKamarad))) {
-        alert("Přezdívka pro spolujezdce může obsahovat pouze 2 až 20 znaků a smí obsahovat pouze písmena a čísla.");
+    let uzivatelske_jmeno = form.querySelector("#fuzivatelske_jmeno").value;
+    let heslo = form.querySelector("#fheslo").value;
+    let jmeno = form.querySelector("#fjmeno").value;
+    let prijmeni = form.querySelector("#fprijmeni").value;
+    let trida = form.querySelector("#strida").value;
+    let plavec = document.getElementById("rplavec").checked;
+
+    if (await upozorneni('/registrace', {
+        uzivatelske_jmeno,
+        heslo,
+        jmeno,
+        prijmeni,
+        trida,
+        plavec
+    })) {
+        location.replace("/jezdec")
+    } else {
         return false;
     }
+}
 
-    let xhr = new XMLHttpRequest();
-    xhr.open("GET", "/api/check-nickname?nick=" + nick, false);
-    xhr.send();
+async function validacePrihlaseni(form) {
+    event.preventDefault();
 
-    if (xhr.status === 200) {
-        let response = JSON.parse(xhr.responseText);
-        if (response.exists) {
-            alert("Tento nick již existuje.");
+    let uzivatelske_jmeno = form.querySelector("#fuzivatelske_jmeno").value;
+    let heslo = form.querySelector("#fheslo").value;
+
+    if (await upozorneni('/prihlaseni', {
+        uzivatelske_jmeno,
+        heslo
+    })) {
+        location.replace("/jezdec")
+    } else {
+        return false;
+    }
+}
+
+async function validacePoslaniPozvanky(form) {
+    event.preventDefault();
+
+    let spolujezdec = form.querySelector("#fspolujezdec").value;
+
+    if (await upozorneni('/poslat-pozvanku', {
+        spolujezdec
+    })) {
+        location.replace("/jezdec")
+    } else {
+        return false;
+    }
+}
+
+async function validacePrijmutiPozvanky(odesilatel) {
+    event.preventDefault();
+
+    await upozorneni('/prijmout-pozvanku', {
+        odesilatel
+    })
+    location.replace("/jezdec")
+}
+
+async function validaceOdmitnutiPozvanky(odesilatel) {
+    event.preventDefault();
+
+    if (await upozorneni('/odmitnout-pozvanku', {
+        odesilatel
+    })) {
+        location.replace("/jezdec")
+    } else {
+        return false;
+    }
+}
+
+async function upozorneni(odkaz, data = {}) {
+    try {
+        let odpoved = await fetch(odkaz, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!odpoved.ok) {
+            let dataOdpovedi = await odpoved.json();
+            alert(dataOdpovedi.error);
             return false;
         }
+
+        let dataOdpovedi = await odpoved.json();
+        alert(dataOdpovedi.success);
+        return true;
+    } catch (error) {
+        alert('Chyba při komunikaci se serverem.');
+        return false;
     }
-
-    let xhr2 = new XMLHttpRequest();
-    xhr2.open("GET", "/api/check-nickname?nick=" + kanoeKamarad, false);
-    xhr2.send();
-
-    if (kanoeKamarad) {
-        if (xhr2.status === 200) {
-            let response = JSON.parse(xhr2.responseText);
-            if (!response.exists) {
-                alert("Tento spolujezdec neexistuje.");
-                return false;
-            }
-        }
-    }
-
-    return true;
 }
