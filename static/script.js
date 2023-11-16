@@ -8,6 +8,7 @@ async function validaceRegistrace(form) {
     let trida = form.querySelector("#strida").value;
     let plavec = document.getElementById("rplavec").checked;
 
+
     if (await upozorneni('/registrace', {
         uzivatelske_jmeno,
         heslo,
@@ -17,6 +18,7 @@ async function validaceRegistrace(form) {
         plavec
     })) {
         location.replace("/jezdec")
+        form.submit()
     } else {
         return false;
     }
@@ -33,6 +35,7 @@ async function validacePrihlaseni(form) {
         heslo
     })) {
         location.replace("/jezdec")
+        form.submit()
     } else {
         return false;
     }
@@ -47,6 +50,7 @@ async function validacePoslaniPozvanky(form) {
         spolujezdec
     })) {
         location.replace("/jezdec")
+        form.submit()
     } else {
         return false;
     }
@@ -72,6 +76,13 @@ async function validaceOdmitnutiPozvanky(odesilatel) {
         return false;
     }
 }
+
+function potvrditSmazani(){
+    event.preventDefault();
+    if(confirm('Určitě chcete smazat účet?'))
+        location.replace("/smazat-jezdce")
+}
+
 
 async function upozorneni(odkaz, data = {}) {
     try {
