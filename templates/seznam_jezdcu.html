@@ -30,7 +30,7 @@
                 se</a>
         </div>
         <div class="col-md-3 col-lg-2 align-self-center">
-            <a class="btn btn-danger mb-1 w-100" href="/smazat-jezdce"
+            <a class="btn btn-danger mb-1 w-100" onclick="potvrditSmazani()"
                role="button" style="height: 38px">Smazat
                 účet</a>
         </div>
@@ -56,8 +56,7 @@
                 <select class="form-select" id="stridy" name="trida">
                     <option>---</option>
                     {% for trida in tridy %}
-                    <option if session.get( trida== value="{{ trida }}" {%
-                    'filtr_tridy', '') %} selected {% endif %}>{{ trida }}</option>
+                    <option {% if session.get('filtr_tridy','') == trida %} selected {% endif %} value="{{ trida }}">{{ trida }}</option>
                     {% endfor %}
                 </select>
             </div>
