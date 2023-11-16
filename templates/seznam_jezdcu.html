@@ -54,7 +54,7 @@
             <div class="col-md-3 col-lg-2 align-self-center">
                 <label for="stridy">Třída</label>
                 <select class="form-select" id="stridy" name="trida">
-                    <option>---</option>
+                    <option value="---">---</option>
                     {% for trida in tridy %}
                     <option {% if session.get('filtr_tridy','') == trida %} selected {% endif %} value="{{ trida }}">{{ trida }}</option>
                     {% endfor %}

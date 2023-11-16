@@ -1,4 +1,3 @@
-import pickle
 import re
 
 from flask import Flask, render_template, request, jsonify, redirect, session
@@ -26,8 +25,6 @@ class Jezdec:
             odebrat_lodku(self.uzivatelske_jmeno)
         jezdci.remove(self)
 
-        return redirect('/odhlaseni'), 302
-
     def poslat_pozvanku(self, spolujezdec):
         if self.spolujezdec:
             return jsonify({'error': 'Máte již spolujezdce, nelze odeslat pozvánku.'}), 400
@@ -50,6 +47,9 @@ class Jezdec:
         jezdec_odesilatel = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == odesilatel), None)
 
         self.pozvanky.remove(jezdec_odesilatel.uzivatelske_jmeno)
+
+        if not jezdec_odesilatel:
+            return jsonify({'error': 'Uživatel neexistuje.'}), 400
 
         if jezdec_odesilatel.spolujezdec:
             return jsonify({'error': 'Uživatel již má spolujezdce.'}), 400
@@ -89,39 +89,17 @@ lodky = []
 tridy = ['A1', 'E1', 'C1a', 'C1b', 'C1c', 'A2', 'E2', 'C2a', 'C2b', 'C2c', 'A3', 'E3', 'C3a', 'C3b', 'C3c', 'A4', 'E4',
          'C4a', 'C4b', 'C4c']
 
-try:
-    with open('data_jezdci.pkl', 'rb') as f_jezdci:
-        jezdci = pickle.load(f_jezdci)
-except FileNotFoundError:
-    jezdci = []
-
-try:
-    with open('data_lodky.pkl', 'rb') as f_lodky:
-        lodky = pickle.load(f_lodky)
-except FileNotFoundError:
-    lodky = []
-
-
-def ulozit_jezdce():
-    with open('data_jezdci.pkl', 'wb') as f:
-        pickle.dump(jezdci, f)
-
-
-def ulozit_lodky():
-    with open('data_lodky.pkl', 'wb') as f:
-        pickle.dump(lodky, f)
-
-
-@app.teardown_appcontext
-def on_teardown_appcontext(exception=None):
-    ulozit_jezdce()
-    ulozit_lodky()
-
 
 @app.route('/', methods=['GET'])
 def index():
     if 'uzivatelske_jmeno' in session:
-        return redirect('/jezdec'), 302
+        jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
+
+        if jezdec is None:
+            return redirect('/odhlaseni'), 302
+        else:
+            return redirect('/jezdec'), 302
+
     return render_template('index.html'), 200
 
 
@@ -129,7 +107,14 @@ def index():
 def registrace():
     if request.method == 'GET':
         if 'uzivatelske_jmeno' in session:
-            return redirect('/jezdec'), 302
+            jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']),
+                          None)
+
+            if jezdec is None:
+                return redirect('/odhlaseni'), 302
+            else:
+                return redirect('/jezdec'), 302
+
         return render_template('registrace.html', tridy=tridy), 200
 
     if request.method == 'POST':
@@ -180,6 +165,15 @@ def registrace():
 @app.route('/prihlaseni', methods=['GET', 'POST'])
 def prihlaseni():
     if request.method == 'GET':
+        if 'uzivatelske_jmeno' in session:
+            jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']),
+                          None)
+
+            if jezdec is None:
+                return redirect('/odhlaseni'), 302
+            else:
+                return redirect('/jezdec'), 302
+
         return render_template('prihlaseni.html'), 200
 
     if request.method == 'POST':
@@ -187,11 +181,11 @@ def prihlaseni():
         uzivatelske_jmeno = data.get("uzivatelske_jmeno")
         heslo = data.get("heslo")
 
-    if any(jezdec.uzivatelske_jmeno == uzivatelske_jmeno and jezdec.heslo == heslo for jezdec in jezdci):
-        session['uzivatelske_jmeno'] = uzivatelske_jmeno
-        return jsonify({'success': 'Přihlášení proběhlo úspěšně.'})
-
-    return jsonify({'error': 'Neplatné uživatelské jméno nebo heslo.'}), 400
+        if any(jezdec.uzivatelske_jmeno == uzivatelske_jmeno and jezdec.heslo == heslo for jezdec in jezdci):
+            session['uzivatelske_jmeno'] = uzivatelske_jmeno
+            return jsonify({'success': 'Přihlášení proběhlo úspěšně.'})
+        else:
+            return jsonify({'error': 'Neplatné uživatelské jméno nebo heslo.'}), 400
 
 
 @app.route('/odhlaseni', methods=['GET'])
@@ -214,7 +208,7 @@ def jezdec():
     jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
 
     if jezdec is None:
-        return redirect('/prihlaseni'), 302
+        return redirect('/odhlaseni'), 302
 
     pozvanky = filtrace_pozvanek(jezdec.pozvanky)
 
@@ -222,39 +216,35 @@ def jezdec():
     if jezdec.spolujezdec:
         spolujezdec = jezdec.spolujezdec
         spolujezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == spolujezdec), None)
-        spolujezdec = {'uzivatelske_jmeno': spolujezdec.uzivatelske_jmeno, 'jmeno': spolujezdec.jmeno,
-                       'prijmeni': spolujezdec.prijmeni, 'trida': spolujezdec.trida}
+        if spolujezdec is not None:
+            spolujezdec = {'uzivatelske_jmeno': spolujezdec.uzivatelske_jmeno, 'jmeno': spolujezdec.jmeno,
+                           'prijmeni': spolujezdec.prijmeni, 'trida': spolujezdec.trida}
 
     return render_template('jezdec.html', spolujezdec=spolujezdec, pozvanky=pozvanky), 200
 
 
 @app.route('/smazat-jezdce', methods=['GET'])
 def smazat_jezdce():
-    if 'uzivatelske_jmeno' not in session:
-        return redirect('/prihlaseni'), 302
+    if 'uzivatelske_jmeno' in session:
+        jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
 
-    jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
-
-    if jezdec is None:
-        return redirect('/prihlaseni'), 302
-
-    return jezdec.smazat_jezdce()
+        if jezdec is not None:
+            jezdec.smazat_jezdce()
+        return redirect('/odhlaseni'), 302
 
 
 def filtrace_pozvanek(pozvanky):
     vysledek = []
     for pozvanka in pozvanky:
         jezdec_pozvanka = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == pozvanka), None)
-        vysledek.append({'uzivatelske_jmeno': jezdec_pozvanka.uzivatelske_jmeno, 'jmeno': jezdec_pozvanka.jmeno,
-                         'prijmeni': jezdec_pozvanka.prijmeni, 'trida': jezdec_pozvanka.trida})
+        if jezdec_pozvanka is not None:
+            vysledek.append({'uzivatelske_jmeno': jezdec_pozvanka.uzivatelske_jmeno, 'jmeno': jezdec_pozvanka.jmeno,
+                             'prijmeni': jezdec_pozvanka.prijmeni, 'trida': jezdec_pozvanka.trida})
     return vysledek
 
 
 @app.route('/odstranit-spolujezdce', methods=['POST'])
 def odstranit_spolujezdce():
-    if 'uzivatelske_jmeno' not in session:
-        return redirect('/prihlaseni'), 302
-
     jezdec_sam = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
     jezdec_spolujezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == jezdec_sam.spolujezdec), None)
     jezdec_spolujezdec.spolujezdec = None
@@ -267,50 +257,43 @@ def odstranit_spolujezdce():
 
 @app.route('/poslat-pozvanku', methods=['POST'])
 def poslat_pozvanku():
-    if 'uzivatelske_jmeno' not in session:
-        return redirect('/prihlaseni'), 302
+    if 'uzivatelske_jmeno' in session:
+        jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
 
-    jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
+        if jezdec is None:
+            return redirect('/odhlaseni'), 302
 
-    if jezdec is None:
-        return redirect('/prihlaseni'), 302
+        data = request.json
+        spolujezdec = data.get("spolujezdec")
 
-    data = request.json
-    spolujezdec = data.get("spolujezdec")
-
-    return jezdec.poslat_pozvanku(spolujezdec)
+        return jezdec.poslat_pozvanku(spolujezdec)
 
 
 @app.route('/prijmout-pozvanku', methods=['POST'])
 def prijmout_pozvanku():
-    if 'uzivatelske_jmeno' not in session:
-        return redirect('/prihlaseni'), 302
+    if 'uzivatelske_jmeno' in session:
+        jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
 
-    jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
+        if jezdec is None:
+            return redirect('/odhlaseni'), 302
+        data = request.json
+        odesilatel = data.get("odesilatel")
 
-    if jezdec is None:
-        return redirect('/prihlaseni'), 302
-
-    data = request.json
-    odesilatel = data.get("odesilatel")
-
-    return jezdec.prijmout_pozvanku(odesilatel)
+        return jezdec.prijmout_pozvanku(odesilatel)
 
 
 @app.route('/odmitnout-pozvanku', methods=['POST'])
 def odmitnout_pozvanku():
-    if 'uzivatelske_jmeno' not in session:
-        return redirect('/prihlaseni'), 302
+    if 'uzivatelske_jmeno' in session:
+        jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
 
-    jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
+        if jezdec is None:
+            return redirect('/odhlaseni'), 302
 
-    if jezdec is None:
-        return redirect('/prihlaseni'), 302
+        data = request.json
+        odesilatel = data.get("odesilatel")
 
-    data = request.json
-    odesilatel = data.get("odesilatel")
-
-    return jezdec.odmitnout_pozvanku(odesilatel)
+        return jezdec.odmitnout_pozvanku(odesilatel)
 
 
 @app.route('/seznam-jezdcu', methods=['GET', 'POST'])
@@ -318,10 +301,11 @@ def seznam_jezdcu():
     if 'uzivatelske_jmeno' not in session:
         return redirect('/prihlaseni'), 302
 
-    jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
+    if 'uzivatelske_jmeno' in session:
+        jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
 
-    if jezdec is None:
-        return redirect('/prihlaseni'), 302
+        if jezdec is None:
+            return redirect('/odhlaseni'), 302
 
     filtr_jmena = None
     filtr_prijmeni = None
@@ -386,10 +370,11 @@ def seznam_lodek():
     if 'uzivatelske_jmeno' not in session:
         return redirect('/prihlaseni'), 302
 
-    jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
+    if 'uzivatelske_jmeno' in session:
+        jezdec = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == session['uzivatelske_jmeno']), None)
 
-    if jezdec is None:
-        return redirect('/prihlaseni'), 302
+        if jezdec is None:
+            return redirect('/odhlaseni'), 302
 
     filtr_jmena = None
     filtr_prijmeni = None
@@ -398,12 +383,12 @@ def seznam_lodek():
     if request.method == 'GET':
         filtr_jmena = session.get('filtr_jmena-lodky', '')
         filtr_prijmeni = session.get('filtr_prijmeni-lodky', '')
-        filtr_tridy = session.get('filtr_tridy-lodky', '')
+        filtr_tridy = session.get('filtr_tridy-lodky', '---')
 
     if request.method == 'POST':
         filtr_jmena = request.form.get('jmeno', '')
         filtr_prijmeni = request.form.get('prijmeni', '')
-        filtr_tridy = request.form.get('trida', '')
+        filtr_tridy = request.form.get('trida', '---')
 
         session['filtr_jmena-lodky'] = filtr_jmena
         session['filtr_prijmeni-lodky'] = filtr_prijmeni
@@ -417,17 +402,20 @@ def seznam_lodek():
 def filtrovat_lodky(jmena, prijmeni, trida):
     filtrovane_lodky = []
 
+    if trida == '---':
+        trida = None
+
     for lodka in lodky:
         jezdec1 = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == lodka.jezdci[0]), None)
         jezdec2 = next((jezdec for jezdec in jezdci if jezdec.uzivatelske_jmeno == lodka.jezdci[1]), None)
         if jezdec1 and jezdec2:
             if ((not jmena or filtrace(jmena, jezdec1.jmeno)) and (
-                    not prijmeni and filtrace(prijmeni, jezdec1.prijmeni)) and (
-                        trida == '---' or trida == jezdec1.trida)) or (
+                    not prijmeni or filtrace(prijmeni, jezdec1.prijmeni)) and (
+                        trida == None or trida == jezdec1.trida)) or (
                     (not jmena or filtrace(jmena, jezdec2.jmeno)) and (not
                                                                        prijmeni or filtrace(prijmeni,
                                                                                             jezdec2.prijmeni)) and (
-                            trida == '---' or trida == jezdec2.trida)):
+                            trida == None or trida == jezdec2.trida)):
                 filtrovane_lodky.append(Lodka([f'{jezdec1.jmeno} {jezdec1.prijmeni}, {jezdec1.trida}',
                                                f'{jezdec2.jmeno} {jezdec2.prijmeni}, {jezdec2.trida}']))
 
@@ -435,4 +423,4 @@ def filtrovat_lodky(jmena, prijmeni, trida):
 
 
 if __name__ == '__main__':
-    app.run(debug=False,host='0.0.0.0')
+    app.run(debug=False, host='0.0.0.0')
